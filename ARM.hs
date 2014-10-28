@@ -1,5 +1,6 @@
 module ARM (Address, Instruction, Register(..), Operand2(..), Shift(..),
-    Condition(..), disassemble, jumpAddress, label, printInstructions) where
+    Condition(..), disassembleSection, jumpAddress, label, printInstructions)
+    where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Binary.Get (Get, bytesRead, getWord32le)
@@ -110,15 +111,15 @@ bitsToRegister :: Integral a => a -> Register
 bitsToRegister = toEnum . fromIntegral
 
 -- Disassembling
-disassemble :: Address -> [Instruction] -> Get [Instruction]
-disassemble baseAddress instructions = do
+disassembleSection :: Address -> [Instruction] -> Get [Instruction]
+disassembleSection baseAddress instructions = do
     instruction <- getInstruction baseAddress
     let instructions' = instruction:instructions
 
     if stop instruction then
         return (reverse instructions')
     else
-        disassemble baseAddress instructions'
+        disassembleSection baseAddress instructions'
 
 stop :: Instruction -> Bool
 stop (B AL _) = True
