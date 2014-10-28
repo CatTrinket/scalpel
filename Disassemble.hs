@@ -18,14 +18,14 @@ type Disassembly = Map.Map Address (Maybe [Instruction])
 disassemble :: Disassembly -> Set.Set Address -> Handle -> IO Disassembly
 disassemble past future binary = do
     let (address, future') = Set.deleteFindMin future
-    hSeek binary AbsoluteSeek address
+    hSeek binary AbsoluteSeek (fromIntegral address)
 
     section <- runGet (disassembleSection address []) <$>
         BL.hGetContents binary
 
     let past' = Map.insert address (Just section) past
     (past'', future'') <- updateAddresses past' future' section address <$>
-        hTell binary
+        fromIntegral <$> hTell binary
 
     if Set.null future'' then
         return past''

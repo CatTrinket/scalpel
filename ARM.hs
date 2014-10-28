@@ -4,7 +4,7 @@ module ARM (Address, Instruction, Register(..), Operand2(..), Shift(..),
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Binary.Get (Get, bytesRead, getWord32le)
-import Data.Bits (Bits, (.&.), shiftL, shiftR, testBit)
+import Data.Bits (Bits, (.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word32)
 import Text.Printf (printf)
 
@@ -27,7 +27,7 @@ data Condition = EQ | NE | CS | CC | MI | PL | VS | VC | HI | LS | GE | LT |
     GT | LE | AL | NV
     deriving (Show, Eq, Ord, Enum)
 
-type Address = Integer
+type Address = Word32
 
 type RawInstruction = Word32
 
@@ -39,15 +39,15 @@ data Instruction =
     deriving Show
 
 getInstruction :: Address -> Get Instruction
-getInstruction baseAddress = parseInstruction <$> getWord32le <*> getAddress
-    where getAddress = (baseAddress +) . fromIntegral <$> bytesRead
+getInstruction baseAddress = parseInstruction <$> getWord32le <*> getPC
+    where getPC = (baseAddress +) . fromIntegral . (+ 4) <$> bytesRead
 
 -- Parsing instructions
 testZeroBit :: Bits a => a -> Int -> Bool
 x `testZeroBit` bitNum = not (x `testBit` bitNum)
 
 parseInstruction :: RawInstruction -> Address -> Instruction
-parseInstruction instruction position =
+parseInstruction instruction pc =
     if cond /= NV then
         if instruction `testZeroBit` 27 then
             if instruction .&. 0x0FF000F0 == 0x01200010 then
@@ -59,7 +59,7 @@ parseInstruction instruction position =
                 if instruction `testZeroBit` 25 then
                     Unknown instruction
                 else
-                    parseBranch instruction cond position
+                    parseBranch instruction cond pc
             else
                 Unknown instruction
     else
@@ -67,19 +67,15 @@ parseInstruction instruction position =
     where cond = toEnum . fromIntegral $ instruction `shiftR` 28 :: Condition
 
 parseBranch :: RawInstruction -> Condition -> Address -> Instruction
-parseBranch instruction condition address =
-    if target < 0 then
-        -- welp
-        Unknown instruction
-    else if instruction `testZeroBit` 24 then
+parseBranch instruction condition pc =
+    if instruction `testZeroBit` 24 then
         B condition target
     else
         BL condition target
     where
-        target = address + 4 + offset
-        offset = fromIntegral offset' - fromIntegral signBit :: Integer
-        offset' = ((instruction .&. 0x007FFFFF) `shiftL` 2)
-        signBit = (instruction .&. 0x00800000) `shiftL` 2
+        target = pc + offset
+        offset = signExtend (instruction .&. 0x00FFFFFF) `shiftL` 2
+        signExtend x = if x `testBit` 23 then x .|. 0x3F000000 else x
 
 -- Printing shit
 printInstruction :: Instruction -> String
