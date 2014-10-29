@@ -47,11 +47,12 @@ updateAddresses past future section start end = (newPast, newFuture)
         isInside address = start <= address && address < end
         (inside, outside) = Set.partition isInside newAddresses
         newPast = past `Map.union` Map.fromSet (const Nothing) inside
-        newFuture = future `Set.union` outside `Set.difference` Map.keysSet past
+        newFuture = future `Set.union` outside `Set.difference`
+            Map.keysSet past
 
--- Disassemble as much of a binary as possible and print the disassembly.
-fullDisassembly :: Handle -> IO ()
-fullDisassembly = disassemble Map.empty (Set.singleton 0) >=> printDisassembly
+-- Disassemble as much of a binary as possible.
+fullDisassembly :: Handle -> IO Disassembly
+fullDisassembly = disassemble Map.empty (Set.singleton 0)
 
 -- Print a disassembly.
 printDisassembly :: Disassembly -> IO ()
@@ -67,4 +68,4 @@ printSection (address, Just section) = do
 -- Disassemble a binary from the command line.
 main = do
     [filename] <- getArgs
-    withBinaryFile filename ReadMode fullDisassembly
+    withBinaryFile filename ReadMode (fullDisassembly >=> printDisassembly)

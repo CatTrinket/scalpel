@@ -126,7 +126,7 @@ bitsToRegister = toEnum . fromIntegral
 -- Get an instruction.
 getInstruction :: Address -> Get Instruction
 getInstruction baseAddress = parseInstruction <$> getWord32le <*> getPC
-    where getPC = (baseAddress +) . fromIntegral . (+ 4) <$> bytesRead
+    where getPC = (baseAddress + 4 +) . fromIntegral <$> bytesRead
 
 -- Get a sequence of instructions.
 disassembleSection :: Address -> [Instruction] -> Get [Instruction]
