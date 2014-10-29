@@ -10,7 +10,7 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
     hTell, withBinaryFile)
 import Text.Printf (printf)
 
-import ARM (Address, Instruction, disassembleSection, jumpAddress, label,
+import ARM (Address, Instruction, branchAddress, disassembleSection, label,
     printInstructions)
 
 
@@ -43,7 +43,7 @@ updateAddresses :: Disassembly -> Set.Set Address -> [Instruction] ->
     Address -> Address -> (Disassembly, Set.Set Address)
 updateAddresses past future section start end = (newPast, newFuture)
     where
-        newAddresses = Set.fromList (mapMaybe jumpAddress section)
+        newAddresses = Set.fromList (mapMaybe branchAddress section)
         isInside address = start <= address && address < end
         (inside, outside) = Set.partition isInside newAddresses
         newPast = past `Map.union` Map.fromSet (const Nothing) inside

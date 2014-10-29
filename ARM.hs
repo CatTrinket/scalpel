@@ -1,5 +1,5 @@
-module ARM (Address, Instruction, Register(..), Operand2(..), Shift(..),
-    Condition(..), disassembleSection, jumpAddress, label, printInstructions)
+module ARM (Address, Instruction, Register(..), Shift(..), ShifterOperand(..),
+    Condition(..), branchAddress, disassembleSection, label, printInstructions)
     where
 
 import Control.Applicative ((<$>), (<*>))
@@ -18,7 +18,7 @@ data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | SL | FP |
     IP | SP | LR | PC
     deriving (Show, Eq, Ord, Enum)
 
-data Operand2 =
+data ShifterOperand =
     Register Register |
     Immediate Int |
     ShiftImmediate Register Shift Int |
@@ -111,10 +111,10 @@ label = printf "arm_0x%08X"
 
 -- Return Just the target address of a branch instruction, or Nothing for a
 -- non-branch instruction or a register branch.
-jumpAddress :: Instruction -> Maybe Address
-jumpAddress (B _ target) = Just target
-jumpAddress (BL _ target) = Just target
-jumpAddress _ = Nothing
+branchAddress :: Instruction -> Maybe Address
+branchAddress (B _ target) = Just target
+branchAddress (BL _ target) = Just target
+branchAddress _ = Nothing
 
 -- Turn a register number into the corresponding register.
 bitsToRegister :: Integral a => a -> Register
