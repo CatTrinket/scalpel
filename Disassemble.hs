@@ -13,8 +13,13 @@ import Text.Printf (printf)
 import ARM (Address, Instruction, disassembleSection, jumpAddress, label,
     printInstructions)
 
+
+-- Map section addresses to sequences of instructions found at those addresses.
+-- Branch addresses in the middle of other sections are mapped to Nothing.
 type Disassembly = Map.Map Address (Maybe [Instruction])
 
+-- Continue disassembling from a disassembly in progress and a set of addresses
+-- to look at.
 disassemble :: Disassembly -> Set.Set Address -> Handle -> IO Disassembly
 disassemble past future binary = do
     let (address, future') = Set.deleteFindMin future
@@ -32,6 +37,8 @@ disassemble past future binary = do
     else
         disassemble past'' future'' binary
 
+-- Update a disassembly in progress and a set of addresses to look at, based on
+-- all the branch addresses in a section.
 updateAddresses :: Disassembly -> Set.Set Address -> [Instruction] ->
     Address -> Address -> (Disassembly, Set.Set Address)
 updateAddresses past future section start end = (newPast, newFuture)
@@ -42,18 +49,22 @@ updateAddresses past future section start end = (newPast, newFuture)
         newPast = past `Map.union` Map.fromSet (const Nothing) inside
         newFuture = future `Set.union` outside `Set.difference` Map.keysSet past
 
+-- Disassemble as much of a binary as possible and print the disassembly.
 fullDisassembly :: Handle -> IO ()
 fullDisassembly = disassemble Map.empty (Set.singleton 0) >=> printDisassembly
 
+-- Print a disassembly.
 printDisassembly :: Disassembly -> IO ()
 printDisassembly = mapM_ printSection . Map.assocs
 
+-- Print a section of a disassembly.
 printSection :: (Address, Maybe [Instruction]) -> IO ()
 printSection (_, Nothing) = return ()
 printSection (address, Just section) = do
     printf "%s:\n" (label address) :: IO ()
     putStrLn (printInstructions section)
 
+-- Disassemble a binary from the command line.
 main = do
     [filename] <- getArgs
     withBinaryFile filename ReadMode fullDisassembly
