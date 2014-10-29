@@ -98,7 +98,7 @@ showCond :: Condition -> String
 showCond AL = ""
 showCond c = show c
 
--- Print a sequence of insturctions.
+-- Print a sequence of instructions.
 printInstructions :: [Instruction] -> String
 printInstructions = concatMap (printf "    %s\n" . printInstruction)
 
@@ -140,7 +140,7 @@ disassembleSection baseAddress instructions = do
         disassembleSection baseAddress instructions'
 
 -- Return True if disassembly should stop after this instruction, i.e. if the
--- instruction is an unconditional branch.
+-- instruction is an unconditional branch without link.
 stop :: Instruction -> Bool
 stop (B AL _) = True
 stop (BX AL _) = True
