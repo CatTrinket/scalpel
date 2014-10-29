@@ -1,5 +1,6 @@
-module ARM (Address, Instruction, Register(..), Shift(..), ShifterOperand(..),
-    Condition(..), branchAddress, disassembleSection, label, printInstructions)
+module ARM.ARM (Address, Instruction, Register(..), Shift(..),
+    ShifterOperand(..), Condition(..), branchAddress, disassembleSection,
+    label, printInstructions)
     where
 
 import Control.Applicative ((<$>), (<*>))
@@ -8,15 +9,12 @@ import Data.Bits (Bits, (.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word32)
 import Text.Printf (printf)
 
+import ARM.Common (Address, Register(..), bitsToRegister)
+
 
 -- Various data types
 
-type Address = Word32
 type RawInstruction = Word32
-
-data Register = R0 | R1 | R2 | R3 | R4 | R5 | R6 | R7 | R8 | R9 | SL | FP |
-    IP | SP | LR | PC
-    deriving (Show, Eq, Ord, Enum)
 
 data ShifterOperand =
     Register Register |
@@ -116,17 +114,13 @@ branchAddress (B _ target) = Just target
 branchAddress (BL _ target) = Just target
 branchAddress _ = Nothing
 
--- Turn a register number into the corresponding register.
-bitsToRegister :: Integral a => a -> Register
-bitsToRegister = toEnum . fromIntegral
-
 
 -- Disassembling
 
 -- Get an instruction.
 getInstruction :: Address -> Get Instruction
 getInstruction baseAddress = parseInstruction <$> getWord32le <*> getPC
-    where getPC = (baseAddress + 4 +) . fromIntegral <$> bytesRead
+    where getPC = (4 + baseAddress +) . fromIntegral <$> bytesRead
 
 -- Get a sequence of instructions.
 disassembleSection :: Address -> [Instruction] -> Get [Instruction]

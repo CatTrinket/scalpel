@@ -10,7 +10,8 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
     hTell, withBinaryFile)
 import Text.Printf (printf)
 
-import ARM (Address, Instruction, branchAddress, disassembleSection, label,
+import ARM.Common (Address)
+import ARM.ARM (Instruction, branchAddress, disassembleSection, label,
     printInstructions)
 
 
