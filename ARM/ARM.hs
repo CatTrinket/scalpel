@@ -1,15 +1,16 @@
 module ARM.ARM (Address, Instruction, Register(..), Shift(..),
-    ShifterOperand(..), Condition(..), branchAddress, disassembleSection,
-    label, printInstructions)
+    ShifterOperand(..), branchAddress, disassembleSection, label,
+    printInstructions)
     where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Binary.Get (Get, bytesRead, getWord32le)
-import Data.Bits (Bits, (.&.), (.|.), shiftL, shiftR, testBit)
+import Data.Bits ((.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word32)
 import Text.Printf (printf)
 
-import ARM.Common (Address, Register(..), bitsToRegister)
+import ARM.Common (Address, Condition(..), Register(..), bitsToRegister,
+    showCondition, testZeroBit)
 
 
 -- Various data types
@@ -26,10 +27,6 @@ data ShifterOperand =
 data Shift = LSL | LSR | ASR | ROR
     deriving Show
 
-data Condition = EQ | NE | CS | CC | MI | PL | VS | VC | HI | LS | GE | LT |
-    GT | LE | AL | NV
-    deriving (Show, Eq, Ord, Enum)
-
 data Instruction =
     B Condition Address |
     BL Condition Address |
@@ -39,10 +36,6 @@ data Instruction =
 
 
 -- Parsing instructions
-
--- Return True if the bitNum-th bit of x is 0.
-testZeroBit :: Bits a => a -> Int -> Bool
-x `testZeroBit` bitNum = not (x `testBit` bitNum)
 
 -- Parse a raw 32-bit ARM instruction.
 parseInstruction :: RawInstruction -> Address -> Instruction
@@ -84,17 +77,12 @@ parseBranch instruction condition pc =
 -- Print an instruction using GAS syntax.
 printInstruction :: Instruction -> String
 printInstruction (B cond address) =
-    printf "B%s %s" (showCond cond) (label address)
+    printf "B%s %s" (showCondition cond) (label address)
 printInstruction (BL cond address) =
-    printf "BL%s %s" (showCond cond) (label address)
+    printf "BL%s %s" (showCondition cond) (label address)
 printInstruction (BX cond register) =
-    printf "BX%s %s" (showCond cond) (show register)
+    printf "BX%s %s" (showCondition cond) (show register)
 printInstruction (Unknown x) = printf ".word 0x%08X  @ unknown" x
-
--- Show a condition, unless it's AL.
-showCond :: Condition -> String
-showCond AL = ""
-showCond c = show c
 
 -- Print a sequence of instructions.
 printInstructions :: [Instruction] -> String
