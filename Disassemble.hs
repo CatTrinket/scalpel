@@ -2,6 +2,7 @@ import Control.Applicative ((<$>))
 import Control.Monad ((>=>))
 import Data.Binary.Get (runGet)
 import qualified Data.ByteString.Lazy as BL
+import Data.List (isSuffixOf)
 import qualified Data.Map.Lazy as Map
 import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
@@ -11,26 +12,35 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
 import Text.Printf (printf)
 
 import ARM.Common (Address)
-import ARM.ARM (Instruction, branchAddress, disassembleSection, label,
-    printInstructions)
+import qualified ARM.ARM as ARM
+import qualified ARM.Thumb as Thumb
 
+
+data Mode = ARMMode | ThumbMode deriving (Eq, Ord)
+
+-- asdf
+data Section =
+    ARMSection [ARM.Instruction] |
+    ThumbSection [Thumb.Instruction] |
+    Subsection
 
 -- Map section addresses to sequences of instructions found at those addresses.
 -- Branch addresses in the middle of other sections are mapped to Nothing.
-type Disassembly = Map.Map Address (Maybe [Instruction])
+type Disassembly = Map.Map Address Section
+
+type Future = Set.Set (Address, Mode)
 
 -- Continue disassembling from a disassembly in progress and a set of addresses
 -- to look at.
-disassemble :: Disassembly -> Set.Set Address -> Handle -> IO Disassembly
+disassemble :: Disassembly -> Future -> Handle -> IO Disassembly
 disassemble past future binary = do
-    let (address, future') = Set.deleteFindMin future
+    let ((address, mode), future') = Set.deleteFindMin future
     hSeek binary AbsoluteSeek (fromIntegral address)
 
-    section <- runGet (disassembleSection address []) <$>
-        BL.hGetContents binary
+    section <- disassembleSection mode address <$> BL.hGetContents binary
 
-    let past' = Map.insert address (Just section) past
-    (past'', future'') <- updateAddresses past' future' section address <$>
+    let past' = Map.insert address section past
+    (past'', future'') <- updateAddresses past' future' section mode address .
         fromIntegral <$> hTell binary
 
     if Set.null future'' then
@@ -38,35 +48,66 @@ disassemble past future binary = do
     else
         disassemble past'' future'' binary
 
+-- Disassemble a section, be it ARM or Thumb.
+disassembleSection :: Mode -> Address -> BL.ByteString -> Section
+disassembleSection ARMMode address =
+    ARMSection . runGet (ARM.disassembleSection address [])
+disassembleSection ThumbMode address =
+    ThumbSection . runGet (Thumb.disassembleSection address)
+
 -- Update a disassembly in progress and a set of addresses to look at, based on
 -- all the branch addresses in a section.
-updateAddresses :: Disassembly -> Set.Set Address -> [Instruction] ->
-    Address -> Address -> (Disassembly, Set.Set Address)
-updateAddresses past future section start end = (newPast, newFuture)
+updateAddresses :: Disassembly -> Future -> Section -> Mode -> Address ->
+    Address -> (Disassembly, Future)
+updateAddresses past future section mode start end = (newPast, newFuture)
     where
-        newAddresses = Set.fromList (mapMaybe branchAddress section)
         isInside address = start <= address && address < end
-        (inside, outside) = Set.partition isInside newAddresses
-        newPast = past `Map.union` Map.fromSet (const Nothing) inside
-        newFuture = future `Set.union` outside `Set.difference`
-            Map.keysSet past
+        (inside, outside) = Set.partition isInside (branchAddresses section)
+        newPast = past `Map.union` Map.fromSet (const Subsection) inside
+        newFuture = future `Set.union` Set.map withMode outside
+           `Set.difference` Set.map withMode (Map.keysSet past)
+        withMode x = (x, mode)
+
+-- Extract the target addresses of all the branch instructions in a section.
+branchAddresses :: Section -> Set.Set Address
+branchAddresses (ARMSection section) =
+    Set.fromList (mapMaybe ARM.branchAddress section)
+branchAddresses (ThumbSection section) =
+    Set.fromList (mapMaybe Thumb.branchAddress section)
+branchAddresses Subsection = undefined
 
 -- Disassemble as much of a binary as possible.
 fullDisassembly :: Handle -> IO Disassembly
-fullDisassembly = disassemble Map.empty (Set.singleton 0)
+fullDisassembly = disassemble Map.empty (Set.singleton (0, ARMMode))
 
 -- Print a disassembly.
 printDisassembly :: Disassembly -> IO ()
 printDisassembly = mapM_ printSection . Map.assocs
 
 -- Print a section of a disassembly.
-printSection :: (Address, Maybe [Instruction]) -> IO ()
-printSection (_, Nothing) = return ()
-printSection (address, Just section) = do
-    printf "%s:\n" (label address) :: IO ()
+printSection :: (Address, Section) -> IO ()
+printSection (_, Subsection) = return ()
+printSection (address, section) = do
+    printf "%s:\n" (label section address) :: IO ()
     putStrLn (printInstructions section)
+    where
+        label (ARMSection _) = ARM.label
+        label (ThumbSection _) = Thumb.label
+        printInstructions (ARMSection sec) = ARM.printInstructions sec
+        printInstructions (ThumbSection sec) = Thumb.printInstructions sec
+
+-- Disassemble as much of Pokémon FireRed Version as possible.  This function
+-- is VERY TEMPORARY.
+disassembleFireRed :: Handle -> IO Disassembly
+disassembleFireRed = disassemble Map.empty
+    (Set.fromList [(0, ARMMode), (0x3A4, ThumbMode)])
 
 -- Disassemble a binary from the command line.
 main = do
     [filename] <- getArgs
-    withBinaryFile filename ReadMode (fullDisassembly >=> printDisassembly)
+
+    -- XXX I know I should be using some filepath function but whatever
+    let isFireRed = "firered.gba" `isSuffixOf` filename
+    let disFunc = if isFireRed then disassembleFireRed else fullDisassembly
+
+    withBinaryFile filename ReadMode (disFunc >=> printDisassembly)

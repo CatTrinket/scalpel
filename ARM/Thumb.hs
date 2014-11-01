@@ -1,4 +1,6 @@
-module ARM.Thumb () where
+module ARM.Thumb (Instruction, branchAddress, disassembleSection, label,
+    printInstructions)
+    where
 
 import Control.Applicative ((<$>), (<*>))
 import Data.Binary.Get (Get, bytesRead, getWord16le)
