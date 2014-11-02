@@ -51,7 +51,7 @@ disassemble past future binary = do
 -- Disassemble a section, be it ARM or Thumb.
 disassembleSection :: Mode -> Address -> BL.ByteString -> Section
 disassembleSection ARMMode address =
-    ARMSection . runGet (ARM.disassembleSection address [])
+    ARMSection . runGet (ARM.disassembleSection address)
 disassembleSection ThumbMode address =
     ThumbSection . runGet (Thumb.disassembleSection address)
 

@@ -111,15 +111,14 @@ getInstruction baseAddress = parseInstruction <$> getWord32le <*> getPC
     where getPC = (4 + baseAddress +) . fromIntegral <$> bytesRead
 
 -- Get a sequence of instructions.
-disassembleSection :: Address -> [Instruction] -> Get [Instruction]
-disassembleSection baseAddress instructions = do
-    instruction <- getInstruction baseAddress
-    let instructions' = instruction:instructions
+disassembleSection :: Address -> Get [Instruction]
+disassembleSection sectionStart = do
+    instruction <- getInstruction sectionStart
 
     if stop instruction then
-        return (reverse instructions')
+        return [instruction]
     else
-        disassembleSection baseAddress instructions'
+        (instruction :) <$> disassembleSection sectionStart
 
 -- Return True if disassembly should stop after this instruction, i.e. if the
 -- instruction is an unconditional branch without link.
