@@ -16,22 +16,25 @@ import qualified ARM.ARM as ARM
 import qualified ARM.Thumb as Thumb
 
 
-data Mode = ARMMode | ThumbMode deriving (Eq, Ord)
+-- A map from section addresses to sections.
+type Disassembly = Map.Map Address Section
 
--- asdf
+-- A section of ARM or Thumb code, or a "subsection", i.e. a branch target in
+-- the middle of another section.
 data Section =
     ARMSection [ARM.Instruction] |
     ThumbSection [Thumb.Instruction] |
     Subsection
 
--- Map section addresses to sequences of instructions found at those addresses.
--- Branch addresses in the middle of other sections are mapped to Nothing.
-type Disassembly = Map.Map Address Section
-
+-- A set of section addresses yet to be disassembled.
 type Future = Set.Set (Address, Mode)
 
--- Continue disassembling from a disassembly in progress and a set of addresses
--- to look at.
+-- An instruction set, either ARM or Thumb.
+-- XXX "Mode" might not be a particularly good name for this.
+data Mode = ARMMode | ThumbMode deriving (Eq, Ord)
+
+-- Continue disassembling from a disassembly in progress and a set of sections
+-- to disassemble.
 disassemble :: Disassembly -> Future -> Handle -> IO Disassembly
 disassemble past future binary = do
     let ((address, mode), future') = Set.deleteFindMin future
