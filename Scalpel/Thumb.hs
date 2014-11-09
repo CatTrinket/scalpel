@@ -1,4 +1,4 @@
-module ARM.Thumb (Instruction, branchAddress, disassembleSection, label,
+module Scalpel.Thumb (Instruction, branchAddress, disassembleSection, label,
     printInstructions)
     where
 
@@ -8,7 +8,7 @@ import Data.Bits ((.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word16)
 import Text.Printf (printf)
 
-import ARM.Common (Address, Condition(..))
+import Scalpel.Common (Address, Condition(..))
 
 
 -- Data types

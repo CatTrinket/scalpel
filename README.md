@@ -1,8 +1,7 @@
-arm-disassembler-in-haskell
----------------------------
+Scalpel
+-------
 
-Unsurprisingly, this is an ARM disassembler written in Haskell.  As soon as I
-think of a better name, keep in mind that I'm going to rename it.
+Scalpel is an ARM disassembler written in Haskell.
 
 So far it only recognizes `B`, `BL`, and `BX` ARM instructions, and `B` Thumb
 instructions, and will only actually disassemble ARM.  It will, however, follow

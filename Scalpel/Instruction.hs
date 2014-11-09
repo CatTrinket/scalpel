@@ -1,4 +1,4 @@
-module ARM.Instruction (Instruction(..), getSection) where
+module Scalpel.Instruction (Instruction(..), getSection) where
 
 import Control.Applicative ((<$>))
 import Data.Binary (Get)

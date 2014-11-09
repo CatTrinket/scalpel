@@ -11,9 +11,9 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
     hTell, withBinaryFile)
 import Text.Printf (printf)
 
-import ARM.Common (Address)
-import qualified ARM.ARM as ARM
-import qualified ARM.Thumb as Thumb
+import Scalpel.Common (Address)
+import qualified Scalpel.ARM as ARM
+import qualified Scalpel.Thumb as Thumb
 
 
 -- A map from section addresses to sections.

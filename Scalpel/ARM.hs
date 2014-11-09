@@ -1,4 +1,4 @@
-module ARM.ARM (Address, Instruction, Register(..), Shift(..),
+module Scalpel.ARM (Address, Instruction, Register(..), Shift(..),
     ShifterOperand(..), branchAddress, disassembleSection, label,
     printInstructions)
     where
@@ -9,7 +9,7 @@ import Data.Bits ((.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word32)
 import Text.Printf (printf)
 
-import ARM.Common (Address, Condition(..), Register(..), bitsToRegister,
+import Scalpel.Common (Address, Condition(..), Register(..), bitsToRegister,
     showCondition, testZeroBit)
 
 

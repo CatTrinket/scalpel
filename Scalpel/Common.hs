@@ -1,4 +1,4 @@
-module ARM.Common where
+module Scalpel.Common where
 
 import Data.Bits (Bits, testBit)
 import Data.Word (Word32)
