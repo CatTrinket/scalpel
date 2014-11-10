@@ -1,8 +1,17 @@
-module Scalpel.Common where
+module Scalpel where
 
+import Control.Applicative ((<$>))
+import Data.Binary (Get)
 import Data.Bits (Bits, testBit)
 import Data.Word (Word32)
 
+
+-- Type stuff
+
+class Instruction a where
+    stop :: a -> Bool
+    branchAddress :: a -> Maybe Address
+    printInstruction :: a -> String
 
 type Address = Word32
 
@@ -14,6 +23,22 @@ data Condition = EQ | NE | CS | CC | MI | PL | VS | VC | HI | LS | GE | LT |
     GT | LE | AL | NV
     deriving (Show, Eq, Ord, Enum)
 
+
+-- Get stuff
+getInstruction :: Instruction a => Address -> Get a
+getInstruction = undefined
+
+getSection :: Instruction a => Address -> Get [a]
+getSection sectionStart = do
+    instruction <- getInstruction sectionStart
+
+    if stop instruction then
+        return [instruction]
+    else
+        (instruction :) <$> getSection sectionStart
+
+
+-- Functions
 
 -- Return True if the bitNum-th bit of x is 0.
 testZeroBit :: Bits a => a -> Int -> Bool

@@ -8,7 +8,7 @@ import Data.Bits ((.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word16)
 import Text.Printf (printf)
 
-import Scalpel.Common (Address, Condition(..))
+import Scalpel (Address, Condition(..))
 
 
 -- Data types

@@ -9,7 +9,7 @@ import Data.Bits ((.&.), (.|.), shiftL, shiftR, testBit)
 import Data.Word (Word32)
 import Text.Printf (printf)
 
-import Scalpel.Common (Address, Condition(..), Register(..), bitsToRegister,
+import Scalpel (Address, Condition(..), Register(..), bitsToRegister,
     showCondition, testZeroBit)
 
 

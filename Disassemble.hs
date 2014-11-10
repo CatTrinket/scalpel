@@ -11,7 +11,7 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
     hTell, withBinaryFile)
 import Text.Printf (printf)
 
-import Scalpel.Common (Address)
+import Scalpel (Address)
 import qualified Scalpel.ARM as ARM
 import qualified Scalpel.Thumb as Thumb
 
