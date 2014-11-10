@@ -11,9 +11,9 @@ import System.IO (Handle, IOMode(ReadMode), SeekMode(AbsoluteSeek), hSeek,
     hTell, withBinaryFile)
 import Text.Printf (printf)
 
-import Scalpel (Address)
-import qualified Scalpel.ARM as ARM
-import qualified Scalpel.Thumb as Thumb
+import Scalpel (Address, Instruction(..), getSection, printInstructions)
+import Scalpel.ARM (ARMInstruction, armLabel)
+import Scalpel.Thumb (ThumbInstruction, thumbLabel)
 
 
 -- A map from section addresses to sections.
@@ -22,8 +22,8 @@ type Disassembly = Map.Map Address Section
 -- A section of ARM or Thumb code, or a "subsection", i.e. a branch target in
 -- the middle of another section.
 data Section =
-    ARMSection [ARM.Instruction] |
-    ThumbSection [Thumb.Instruction] |
+    ARMSection [ARMInstruction] |
+    ThumbSection [ThumbInstruction] |
     Subsection
 
 -- A set of section addresses yet to be disassembled.
@@ -54,9 +54,9 @@ disassemble past future binary = do
 -- Disassemble a section, be it ARM or Thumb.
 disassembleSection :: Mode -> Address -> BL.ByteString -> Section
 disassembleSection ARMMode address =
-    ARMSection . runGet (ARM.disassembleSection address)
+    ARMSection . runGet (getSection address)
 disassembleSection ThumbMode address =
-    ThumbSection . runGet (Thumb.disassembleSection address)
+    ThumbSection . runGet (getSection address)
 
 -- Update a disassembly in progress and a set of addresses to look at, based on
 -- all the branch addresses in a section.
@@ -74,9 +74,9 @@ updateAddresses past future section mode start end = (newPast, newFuture)
 -- Extract the target addresses of all the branch instructions in a section.
 branchAddresses :: Section -> Set.Set Address
 branchAddresses (ARMSection section) =
-    Set.fromList (mapMaybe ARM.branchAddress section)
+    Set.fromList (mapMaybe branchAddress section)
 branchAddresses (ThumbSection section) =
-    Set.fromList (mapMaybe Thumb.branchAddress section)
+    Set.fromList (mapMaybe branchAddress section)
 branchAddresses Subsection = undefined
 
 -- Disassemble as much of a binary as possible.
@@ -92,12 +92,12 @@ printSection :: (Address, Section) -> IO ()
 printSection (_, Subsection) = return ()
 printSection (address, section) = do
     printf "%s:\n" (label section address) :: IO ()
-    putStrLn (printInstructions section)
+    putStrLn (printInstructions' section)
     where
-        label (ARMSection _) = ARM.label
-        label (ThumbSection _) = Thumb.label
-        printInstructions (ARMSection sec) = ARM.printInstructions sec
-        printInstructions (ThumbSection sec) = Thumb.printInstructions sec
+        label (ARMSection _) = armLabel
+        label (ThumbSection _) = thumbLabel
+        printInstructions' (ARMSection sec) = printInstructions sec
+        printInstructions' (ThumbSection sec) = printInstructions sec
 
 -- Disassemble as much of Pokémon FireRed Version as possible.  This function
 -- is VERY TEMPORARY.

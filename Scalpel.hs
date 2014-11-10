@@ -4,14 +4,23 @@ import Control.Applicative ((<$>))
 import Data.Binary (Get)
 import Data.Bits (Bits, testBit)
 import Data.Word (Word32)
+import Text.Printf (printf)
 
-
--- Type stuff
 
 class Instruction a where
+    -- Get an instruction.
+    getInstruction :: Address -> Get a
+
+    -- Return True if disassembly should stop after this instruction, i.e. if
+    -- the instruction is an unconditional branch without link.
     stop :: a -> Bool
+
+    -- Return Just the address of a branch instruction, or Nothing for a non-
+    -- branch or register branch instruction.
     branchAddress :: a -> Maybe Address
-    printInstruction :: a -> String
+
+    -- Print an instruction using GAS syntax.
+    showGAS :: a -> String
 
 type Address = Word32
 
@@ -24,10 +33,7 @@ data Condition = EQ | NE | CS | CC | MI | PL | VS | VC | HI | LS | GE | LT |
     deriving (Show, Eq, Ord, Enum)
 
 
--- Get stuff
-getInstruction :: Instruction a => Address -> Get a
-getInstruction = undefined
-
+-- Get a sequence of instructions.
 getSection :: Instruction a => Address -> Get [a]
 getSection sectionStart = do
     instruction <- getInstruction sectionStart
@@ -36,9 +42,6 @@ getSection sectionStart = do
         return [instruction]
     else
         (instruction :) <$> getSection sectionStart
-
-
--- Functions
 
 -- Return True if the bitNum-th bit of x is 0.
 testZeroBit :: Bits a => a -> Int -> Bool
@@ -52,3 +55,7 @@ bitsToRegister = toEnum . fromIntegral
 showCondition :: Condition -> String
 showCondition AL = ""
 showCondition c = show c
+
+-- Show a sequence of instructions.
+printInstructions :: Instruction a => [a] -> String
+printInstructions = concatMap (printf "    %s\n" . showGAS)
